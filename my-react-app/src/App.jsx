@@ -11,15 +11,30 @@ const types = [
 
 function App() {
   const [selectedType, setSelectedType] = useState(null)
-  const selected = types.find((type) => type.name === selectedType)
-function getMatchup(type) {
-    // API CALL WILL GO HERE, AND WE WILL RETURN THE RESPONSE
-    return `Fake API response: You are fighting a ${type}-type Pokémon.`;
+  const [matchup, setMatchup] = useState(null)
+
+  async function getMatchup(pokemonType) {
+    try {
+      const response = await fetch(`http://localhost:5001/api/type/${encodeURIComponent(pokemonType)}`)
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Unable to get matchup:', error)
+      return { error: 'Unable to load matchup data.' }
+    }
   }
 
-  function handleTypeClick(type) {
-     const response = getMatchup(type);
-    setSelectedType(response);
+  async function handleTypeClick(type) {
+    setSelectedType(type)
+    setMatchup(await getMatchup(type))
+  }
+
+  function formatTypes(typeNames) {
+    return typeNames.map((typeName) => typeName[0].toUpperCase() + typeName.slice(1)).join(', ')
   }
   return (
     
@@ -55,8 +70,14 @@ function getMatchup(type) {
           </div>
 
           <div className="mt-8 rounded-2xl bg-slate-900 p-5 text-white" aria-live="polite">
-            {selectedType
-            }
+            {matchup?.error ? (
+              <p className="text-sm text-red-200">{matchup.error}</p>
+            ) : matchup ? (
+              <div className="space-y-3 text-sm leading-6">
+                <p><span className="font-semibold text-slate-300">Not very effective against:</span> {formatTypes(matchup.half_damage_to)}</p>
+                <p><span className="font-semibold text-slate-300">Weak to:</span> {formatTypes(matchup.double_damage_from)}</p>
+              </div>
+            ) : <p className="text-sm text-slate-300">Choose a type above.</p>}
           </div>
         </div>
       </section>
